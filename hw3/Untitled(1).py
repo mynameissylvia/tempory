@@ -3,7 +3,6 @@
 
 # In[1]:
 
-
 import math
 import numpy as np
 import pandas as pd
@@ -11,6 +10,9 @@ from keras.utils import np_utils
 from keras.layers import Dense, Activation, Conv2D, MaxPooling2D, Flatten,Dropout
 from keras.models import Sequential
 import sys
+from PIL import Image
+from keras.preprocessing import image
+import os
 
 
 # In[2]:
@@ -74,11 +76,22 @@ def extant(a,n,length = 40):
 
 y_train = order[0]
 x_train = order[1]
-x_train = x_train.reshape(x_train.shape[0],48,48,1).astype('float32')/255
+x_train = x_train.reshape(x_train.shape[0],48,48,1).astype('uint8')/255
 y_train= np_utils.to_categorical(y_train)
 
 
-# In[34]:
+# In[6]:
+
+
+datagen = image.ImageDataGenerator(featurewise_center=True,
+                                   featurewise_std_normalization=True,
+                                   rotation_range=30,
+                                   width_shift_range=0.2,
+                                   height_shift_range=0.2,
+                                   zoom_range = 0.3,)
+
+
+# In[42]:
 
 
 #change to 40*40 ,added
@@ -91,7 +104,10 @@ for i in x_train_m:
     new_m_3 = []  #UP RIGHT
     new_m_4 = []  #UP LEFT
     new_m_5 = []  #MIDDLE
-    
+    new_m_6 = []
+    new_m_7 = []
+    new_m_8 = []
+    new_m_9 = []
     
     #REVERSE
     new_m_11 = [] 
@@ -99,6 +115,11 @@ for i in x_train_m:
     new_m_31 = []
     new_m_41 = []
     new_m_51 = []
+    new_m_61 = []
+    new_m_71 = []
+    new_m_81 = []
+    new_m_91 = []
+    
     
     r = []
     count = 0
@@ -107,19 +128,29 @@ for i in x_train_m:
         n = j.copy()
         m.reverse()
         r.append(m)
-        if count >=6:
-            new_m_1.append(n[6:])
-            new_m_11.append(m[6:])
-            new_m_2.append(n[:-6])
-            new_m_21.append(m[:-6])
-        if len(a)-count >6:
-            new_m_3.append(n[6:])
-            new_m_31.append(m[6:])
-            new_m_4.append(n[:-6])
-            new_m_41.append(m[:-6])
-        if len(a)-count >3 and count >=3:
-            new_m_5.append(n[3:-3])
-            new_m_51.append(m[3:-3])
+        if count >=2 and len(a)-count >6:
+            new_m_6.append(n[2:-6])
+            new_m_61.append(m[2:-6])
+            new_m_7.append(n[6:-2])
+            new_m_71.append(m[6:-2])
+        if count >=6 and len(a)-count >2:
+            new_m_8.append(n[2:-6])
+            new_m_81.append(m[2:-6])
+            new_m_9.append(n[6:-2])
+            new_m_91.append(m[6:-2])
+        if count >=8:
+            new_m_1.append(n[8:])
+            new_m_11.append(m[8:])
+            new_m_2.append(n[:-8])
+            new_m_21.append(m[:-8])
+        if len(a)-count >8:
+            new_m_3.append(n[8:])
+            new_m_31.append(m[8:])
+            new_m_4.append(n[:-8])
+            new_m_41.append(m[:-8])
+        if len(a)-count >4 and count >=4:
+            new_m_5.append(n[4:-4])
+            new_m_51.append(m[4:-4])
         count+=1
     #add some extension
     x_train_mirrow.append(new_m_1)
@@ -127,18 +158,31 @@ for i in x_train_m:
     x_train_mirrow.append(new_m_3)
     x_train_mirrow.append(new_m_4)
     x_train_mirrow.append(new_m_5)
+    x_train_mirrow.append(new_m_6)
+    x_train_mirrow.append(new_m_7)
+    x_train_mirrow.append(new_m_8)
+    x_train_mirrow.append(new_m_9)
     x_train_mirrow.append(new_m_11)
     x_train_mirrow.append(new_m_21)
     x_train_mirrow.append(new_m_31)
     x_train_mirrow.append(new_m_41)
     x_train_mirrow.append(new_m_51)
-#    x_train_mirrow.append(extant(a,40))
-#    x_train_mirrow.append(extant(r,40))
+    x_train_mirrow.append(new_m_61)
+    x_train_mirrow.append(new_m_71)
+    x_train_mirrow.append(new_m_81)
+    x_train_mirrow.append(new_m_91)
+    
+print(len(x_train_mirrow))
+
+
+# In[43]:
+
+
 x_train_m = np.array(x_train_mirrow, dtype=np.float32)
-x_train_m = x_train_m.reshape(x_train_m.shape[0],42,42,1).astype('float32')
+x_train_m = x_train_m.reshape(x_train_m.shape[0],40,40,1).astype('float32')
 
 
-# In[35]:
+# In[33]:
 
 
 y_train = order[0]
@@ -147,21 +191,35 @@ y_train_m = np.array(y_train_m, dtype=np.float32)
 y_train_m= np_utils.to_categorical(y_train_m)
 
 
-# In[36]:
+# In[34]:
 
 
 y_train_m.shape,x_train_m.shape
 
 
-# In[ ]:
+# In[37]:
+
+
+datagen = image.ImageDataGenerator(
+    featurewise_center=True,
+    featurewise_std_normalization=True,
+    rotation_range=30,
+    width_shift_range=0.1,
+    height_shift_range=0.1,
+    zoom_range = 0.3,)
+epochs =30
+batch_size = 64
+
+
+# In[38]:
 
 
 
 model = Sequential()
 model.add(Conv2D(filters = 64,
-                 kernel_size = (5,5),
+                 kernel_size = (4,4),
                  padding = 'same',
-                 input_shape =(42,42,1),
+                 input_shape =(40,40,1),
                  activation = 'relu'))
 model.add(MaxPooling2D((4,4)))  
 model.add(Conv2D(filters = 64,
@@ -184,7 +242,28 @@ print('Training ------------')
 training = model.fit(x_train_m, y_train_m,validation_split = 0.2, epochs=30, batch_size=128,verbose = 2)
 
 
-# In[ ]:
+# In[39]:
+
+
+#from keras.utils import generic_utils
+
+
+# Data Augmentation后，数据变多了，因此我们需要更的训练次数
+#for e in range(epochs*4):
+ #   print('Epoch', e)
+  #  print('Training...')
+   # progbar = generic_utils.Progbar(x_train_m.shape[0])
+    #batches = 0
+    
+    #for x_batch, y_batch in datagen.flow(x_train_m, y_train_m, batch_size=batch_size, shuffle=True):
+     #   loss,train_acc = model.train_on_batch(x_batch, y_batch)
+      #  batches += x_batch.shape[0]
+       # if batches > x_train_m.shape[0]:
+        #    break
+        #progbar.add(x_batch.shape[0], values=[('train loss', loss),('train acc', train_acc)])
+
+
+# In[20]:
 
 
 test = 'test.csv'
@@ -195,6 +274,12 @@ x_test = testing[1].reshape(testing[1].shape[0],48,48).astype('float32')/255
 # In[ ]:
 
 
+
+
+
+# In[21]:
+
+
 x_test_m = []
 for i in x_test:
     a = i.tolist()
@@ -202,21 +287,21 @@ for i in x_test:
     count = 0
     for j in a:
         m = j.copy()
-        if len(a)-count >3 and count >=3:
-            new_m_t.append(m[3:-3])
+        if len(a)-count >4 and count >=4:
+            new_m_t.append(m[4:-4])
         count+=1
     x_test_m.append(new_m_t)
 x_test_m = np.array(x_test_m, dtype=np.float32)
-x_test_m = x_test_m.reshape(x_test_m.shape[0],42,42,1).astype('float32')
+x_test_m = x_test_m.reshape(x_test_m.shape[0],40,40,1).astype('float32')
 
 
-# In[ ]:
+# In[22]:
 
 
 prediction=model.predict_classes(x_test_m)
 
 
-# In[ ]:
+# In[23]:
 
 
 id_name = range(len(prediction))
@@ -225,12 +310,11 @@ outcome = {"id":id_name,
 out = pd.DataFrame(outcome)
 
 
-# In[ ]:
+# In[24]:
 
 
-sample = 'sample.csv'
+sample = 'sample_2.csv'
 out.to_csv(sample,index = False)
-
 
 # In[ ]:
 
