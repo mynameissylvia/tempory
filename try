@@ -1,0 +1,184 @@
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
+"""
+Created on Sun Mar 24 18:31:02 2019
+
+@author: sylvia
+"""
+import numpy as np
+from pyevolve import G1DBinaryString
+from pyevolve import GSimpleGA
+from pyevolve import Selectors
+from pyevolve import Mutators
+from gurobipy  import *
+import random
+import time
+random.seed(250)
+
+
+
+storing = []
+files=open('c101.txt')
+for f in files:
+    a=f.split()
+    storing.append(a)
+vehicle = range(int(storing[4][0])+1)[1:]
+vehicle_sure = range(len(vehicle)+1)
+vehicle_capacity = int(storing[4][1])
+data = [[int(j) for j in i] for i in storing[9:]]
+data[0][0]=0
+# 0.'CUST NO.', 1.'XCOORD.', 2.'YCOORD.', 3.'DEMAND', 4.' READY TIME', 5.'DUE DATE', 6.'SERVICE TIME'
+Tmax = data[0][5]
+ALPHA=0
+BETA=0  
+n=25
+location = [data[:][0]]+data[:][1:n+1]
+location = location[:]
+l = 0
+occurance = [float("%.2f" %random.random()) for i in range(n)]
+#for i in range
+for i in location:
+    i[0]=l
+    l+=1
+all_d = location[:]
+all_d.append(location[0][:])
+all_d[-1][0]=len(all_d)-1
+timeing=[]
+max_time=0
+for i in all_d:
+    t=[]
+    for j in all_d:
+        time_ij = ((i[1]-j[1])**2 + (i[2]-j[2])**2)**0.5
+        t.append(time_ij)
+        if time_ij>max_time:
+            max_time=time_ij
+        del time_ij
+    timeing.append(t)
+    del t
+large_M=int(all_d[0][5]+max_time+all_d[1][6])+1
+scine=range(5)
+#S=[(i+1)*2 for i in scine]
+
+
+n=25
+prob={}
+for i in range(n):
+    prob[i] = random.random()
+check = []
+#print prob
+#a=int(2**25/30)
+count = 0
+sample={}
+start_t =time.time()
+while count<1000:
+    a = random.randint(1,n-1)
+    customer = random.sample(range(n),a)
+    customer.sort()
+    while customer in check:
+        customer = random.sample(range(n),a)
+        customer.sort()
+    customer_n = [i for i in range(n) if i not in customer]
+    c_p = 1
+    for i in customer:
+        c_p*=prob[i]
+    for i in customer_n:
+        c_p*=(1-prob[i])
+    sample[count]= [customer,c_p]
+    check.append([customer])
+    count+=1
+del check
+
+#S_t=range(20)
+#S=[10 for i in S_t]
+#S = [random.randint(1,n-1) for i in scine]
+#customer_s = [random.sample(range(n+1)[1:],i) for i in S]
+#print customer_s
+c1=1
+c2=0.01
+c3=10000
+service=[0] + [5 for i in range(n)]+[0]
+a=[5 for i in range(n)]
+time_penalty = 200
+
+Pmax=100
+
+def eval_func(chromosome):
+    score=0.0
+    c=chromosome
+ #   c=[1 for i in range(n)]
+    x={}
+    y={}
+    t={}
+    p={}
+    delay_check={}
+    delay_t={}
+    global ALPHA
+    global BETA
+    for s in sample:
+        start_t = time.time()
+        model = Model('Stochastic')
+    #        model.setParam('OutputFlag',False)
+        model.Params.MIPGap=0.05
+        model.Params.timeLimit=30.0
+        node_s = range(n+1)
+        customer = [i+1 for i in range(n)]
+        customer_c = sample[s][0]
+        x[s] = model.addVars(node_s,node_s,vehicle_sure,vtype=GRB.BINARY,name = "x_%d" % s) 
+        y[s] = model.addVars(node_s,vehicle_sure,vtype=GRB.BINARY,name = "y_%d" % s)
+        t[s] = model.addVars(node_s,vehicle_sure,name = "t_%d" % s)
+        p[s] = model.addVars(node_s,vehicle_sure,name = "t_%d" % s)
+        delay_check[s] = model.addVars(node_s,vehicle_sure,vtype=GRB.BINARY,name = "delaycheck_%d" % s)
+        delay_t[s] = model.addVars(node_s,vehicle_sure,name = "delaytime_%d" % s)
+        model.addConstrs((quicksum(x[s][i,j,k] for j in node_s if i != j)==y[s][i,k] for i in node_s for k in vehicle_sure))
+        model.addConstrs((quicksum(x[s][j,i,k] for j in node_s if i != j)==y[s][i,k] for i in node_s for k in vehicle_sure))
+        model.addConstr(quicksum(y[s][0,k] for k in  vehicle_sure)<=len(vehicle_sure))
+        model.addConstrs(quicksum(y[s][i,k] for k in  vehicle_sure)<=1 for i in customer)
+        model.addConstrs(quicksum(y[s][i,k] for k in  vehicle_sure)>=c[i-1] for i in customer)
+#        model.addConstrs(y[s][n+1,k]- y[s][0,k] ==0 for k in vehicle_sure)
+        model.addConstrs(quicksum(service[i]*y[s][i,k] for i in customer) +quicksum(quicksum(timeing[i][j]*x[s][i,j,k] for j in node_s if j != i) for i in node_s)<= Tmax for k in vehicle)
+        model.addConstrs(t[s][i,k]+service[i]+timeing[i][j]+large_M*x[s][i,j,k]<=t[s][j,k]+large_M for i in node_s for j in customer for k in vehicle)
+        model.addConstrs(all_d[i][4]<= t[s][i,k] <= all_d[i][5]+Pmax for i in node_s for k in vehicle)
+        model.addConstrs(quicksum(x[s][i,j,k] for k in vehicle_sure)== 0 for i in node_s for j in node_s if i == j)
+        model.addConstrs(t[s][i,k]-all_d[i][5] == delay_check[s][i,k] for i in customer for k in vehicle)
+        model.addConstrs(p[s][i,k] == delay_check[s][i,k] for i in customer for k in vehicle if delay_check[s][i,k] > 0 )
+        model.addConstrs(p[s][i,k]>=0 for i in node_s for k in vehicle_sure)
+        Q = (quicksum(5*all_d[i][3]*y[s][i,k] for i in customer_c for k in vehicle if customer_c != None)
+        -c1*quicksum(x[s][i,j,k]for i in node_s for j in node_s if i != j for k in vehicle)
+        -c2*quicksum(timeing[i][j]*quicksum(x[s][i,j,k] for k in vehicle)for i in node_s for j in node_s if i != j)
+        -c3*quicksum(x[s][i,j,0]for i in node_s for j in node_s if i != j )
+        -time_penalty*quicksum(p[s][i,k] for i in customer for k in vehicle))
+        model.setObjective(Q*sample[s][1], GRB.MAXIMIZE)
+        model.optimize()
+        end_t = time.time()-start_t
+        score += model.ObjVal
+        ALPHA+=1
+        if end_t >= 30.0:
+            BETA+=1
+    score += sum([a[i]*c[i] for i in range(len(chromosome))])
+    del model
+    return score
+def run_main():
+   # Genome instance
+   genome = G1DBinaryString.G1DBinaryString(n)
+   # The evaluator function (objective function)
+   genome.evaluator.set(eval_func)
+   genome.mutator.set(Mutators.G1DBinaryStringMutatorFlip)
+   # Genetic Algorithm Instance
+   ga = GSimpleGA.GSimpleGA(genome)
+   ga.selector.set(Selectors.GTournamentSelector)
+   ga.setGenerations(20)
+   # Do the evolution, with stats dump
+   # frequency of 10 generations
+   ga.evolve(freq_stats=20)
+   # Best individual
+   return ga.bestIndividual()
+
+if __name__ == "__main__":
+    R=run_main()
+    print '\nExpected Revenue:',R.getRawScore(),'\n'
+    for i in range(n):
+        if R.genomeList[i] >0:
+            print i," ",
+    print ALPHA," ",BETA
+    
+    
