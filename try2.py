@@ -1,18 +1,4 @@
-#!/usr/bin/env python2
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Aug 12 10:52:18 2019
-
-Simple prior model
-
-@author: sylvia
-"""
 import numpy as np
-from pyevolve import G1DBinaryString
-from pyevolve import GSimpleGA
-from pyevolve import Selectors
-from pyevolve import Mutators
-from gurobipy  import *
 import random
 import time
 import copy
@@ -24,14 +10,19 @@ text_name = []
 for i in range(9):
     text="c10"+str(i+1)+".txt"
     text_name.append(text)
-
 for i in range(8):
 	text ="c20"+str(i+1)+".txt"
 	text_name.append(text)
 for i in range(12):
 	text ="r1"+str((i+1)//10)+str((i+1)%10)+".txt"
 	text_name.append(text)
+numb1=1
+numb2=1
+numb3=10
+numb4=2.5
+numb5=5
 
+#text_name=["c202.txt"]
 for text_t in text_name:
     storing = []
     files=open(text_t)
@@ -164,7 +155,7 @@ for text_t in text_name:
         score = 0
         wait={}
         maxshift={}
-        maxshift[0]=0
+        maxshift[0]=tw[0][1]-service[0]
         wait[0]=0
         service_start = {}
         all_place = location[:]
@@ -183,8 +174,7 @@ for text_t in text_name:
                     start_time = max(current_time+time_r[route[-1]][i],tw[i][0])
                     punish = max(0,start_time-tw[i][1])
                     if i != insert_l and  current_capacity+demand[i]<=v_capacity and start_time<=tw[i][1]+allow_time and start_time+service[i]+time_r[i][0]<=Tmax:
-#                        current_score = t1*time_r[route[-1]][i]+t2*(tw[i][0]-(tw[route[-1]][0]+service[route[-1]]))
-                        current_score =-c1-c2*(time_r[route[-1]][i])-c3*punish+profit[i]+service_value[i]
+                        current_score =numb1*profit[i]+numb2*service_value[i]-numb3-numb4*(time_r[route[-1]][i])-numb5*punish
                         if current_score>insert_score:
                             insert_score = current_score
                             insert_start = start_time
@@ -196,7 +186,7 @@ for text_t in text_name:
                     continue_r=False
                     break
                 route.append(insert_l)
-                wait[insert_l] = insert_start-tw[insert_l][0]
+                wait[insert_l] = max(0,insert_start-tw[insert_l][0])
                 current_capacity+=demand[i]
                 score+=profit[insert_l]+service_value[insert_l]-c1-c2*time_r[route[-1]][insert_l]-c3*insert_punish
                 service_start[insert_l] = insert_start
@@ -212,9 +202,9 @@ for text_t in text_name:
             routing.append(route)        
         return routing,score,wait, maxshift,service_start,all_place,fix
     start_time = time.time()
-
     initial_d= initial(vehicle_capacity,location_items,profit,demand,service_value,tw,timeing,service,vehicle,c1,c2,c3,allow_time)
     for s in range(chosen_n):
+        punish_v_c=copy.deepcopy(punish_v)
         route_s=copy.deepcopy(initial_d[0])
         score=initial_d[1]
         wait=initial_d[2].copy()
@@ -226,7 +216,7 @@ for text_t in text_name:
         notimprove=0
         service_start[0]=0
         nolocaloptimum = True
-        best_score = 0
+        best_score = max(0,score)
         remove_r = 1
         remove_s = 1
         real_exist = S[s]
@@ -245,9 +235,10 @@ for text_t in text_name:
                         for i2 in range(len(v)-1):
                             j = v[i2]
                             k = v[i2+1]
-                            if service_start[j]+service[j]+timeing[i][j]<=tw[j][1]+allow_time and cap+demand[i]<vehicle_capacity:
-                                arrival=service_start[j]+service[j]+timeing[i][j]
-                                waiting = max(0,tw[j][0]-arrival)
+                            arrival=service_start[j]+service[j]+timeing[i][j]
+                            wait_i = max(0,tw[i][0]-arrival)
+                            if arrival<=tw[i][1]+allow_time and cap+demand[i]<vehicle_capacity and arrival+wait_i+service[i]+timeing[i][k]<=tw[k][1]+allow_time and arrival+service[i]+timeing[i][k]<=tw[0][1]:
+                                waiting = wait_i
                                 start = arrival+waiting
                                 shift = timeing[i][j]+waiting+service[i]+timeing[i][k]-timeing[j][k]
                                 punish=max(start-tw[j][1],0)
@@ -256,8 +247,8 @@ for text_t in text_name:
                                 else:
                                     ratio = -10
                                 if ratio > maxratio:
-                                    punish_v[best_insert]=0
-                                    punish_v[i]=punish
+                                    punish_v_c[best_insert]=0
+                                    punish_v_c[i]=punish
                                     best_insert = i
                                     insert_place = i2+1
                                     maxratio = ratio
@@ -274,10 +265,14 @@ for text_t in text_name:
                         before = v[:insert_place]
                         before.reverse()
                         for i in v[insert_place+1:-1]:
+                            original_wait=wait[i]
                             wait[i]=max(0,wait[i]-shift)
-                            shift = max(0,shift-wait[i])
+                            shift = max(0,shift-original_wait)
                             if shift>0:
                                 service_start[i]=service_start[i]+shift
+                                new_punish=max(0,service_start[i]-tw[i][1])
+                                score-=c3*(new_punish-punish_v_c[i])
+                                punish_v_c[i]= new_punish
                                 maxshift[i]=maxshift[i]-shift
                             else:
                                 break
@@ -288,8 +283,8 @@ for text_t in text_name:
                                 j = best_insert
                             else:
                                 j = before[l-1]
-                            maxshift[i] = min(maxshift[i],wait[j]+maxshift[j])
-                            if maxshift[i]== maxshift[i]:
+                            maxshift[l] = min(maxshift[l],wait[j]+maxshift[j])
+                            if maxshift[l]== maxshift[l]:
                                 break
                         score +=add_score
                         notused.remove(best_insert)
@@ -311,8 +306,8 @@ for text_t in text_name:
                     wait[v[start_d]]=0
                     service_start[v[start_d]]=0
                     score_b = score
-                    score-=profit[v[start_d]]*real_exist[v[start_d]]-c1-c2*(timeing[v[start_d-1]][v[start_d]]+timeing[v[start_d]][v[start_d+1]]-timeing[v[start_d-1]][v[start_d+1]])-c3*punish_v[v[start_d]]
-                    punish_v[v[start_d]]=0
+                    score-=profit[v[start_d]]*real_exist[v[start_d]]-c1-c2*(timeing[v[start_d-1]][v[start_d]]+timeing[v[start_d]][v[start_d+1]]-timeing[v[start_d-1]][v[start_d+1]])-c3*punish_v_c[v[start_d]]
+                    punish_v_c[v[start_d]]=0
                     del v[start_d]
                     pre = start_d-1
                     loc = -1*(len(v)-start_d)
@@ -346,4 +341,7 @@ for text_t in text_name:
                     remove_s=1
         total_score+=best_score*P[s]
     total_score /=sum(P)
-    print text_t," ", time.time()-start_time," ", total_score," ",len(fix)-1
+    file1 = open(".txt","a") 
+    print text_t," ", time.time()-start_time," ", total_score," ",len(fix)-1,len(route_s)
+ 
+print numb1,numb2,numb3,numb4,numb5, " allowable_time = ",allow_time
