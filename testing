@@ -1,0 +1,65 @@
+Solution count 10: 1204.66 1199.18 1198.64 ... 1187.48
+
+Optimal solution found (tolerance 5.00e-02)
+Best objective 1.204660805856e+03, best bound 1.262068980564e+03, gap 4.7655%
+1 2 6 7 8 9 10 11 12 13 14 15 17 18 19 
+1962.99870992
+c101.txt
+100 [1, 2] 10
+10 2.5 20
+
+Insertion + ILS
+c101.txt   10   1158.01922008   0.192067861557 [1, 2, 4, 6, 12, 13, 15, 16, 17, 18, 19]
+
+GA+ILS(0.07)
+Gen. 3000 (100.00%): Max/Min/Avg Fitness(Raw) [21.48(161.81)/17.80(14.00)/17.90(17.90)]
+Total time elapsed: 408.055 seconds.
+
+Expected Revenue: 161.809799072 
+
+9   19   calculation time for best found for  3000  times: 408.055022001
+total time for best found: 408.990875006
+c101.txt 2 10 100
+3000 1 0.07 100
+10 2.5 20 2
+
+GA+ILS(0.05)
+Gen. 3000 (100.00%): Max/Min/Avg Fitness(Raw) [21.48(161.81)/17.80(14.00)/17.90(17.90)]
+Total time elapsed: 409.738 seconds.
+
+Expected Revenue: 161.809799072 
+
+9   19   calculation time for best found for  3000  times: 409.738105059
+total time for best found: 410.670050144
+c101.txt 2 10 100
+3000 1 0.05 100
+10 2.5 20 2
+
+GA+ILS(0.1)
+Total time elapsed: 273.708 seconds.
+
+Expected Revenue: 161.809799072 
+
+9   19   calculation time for best found for  3000  times: 273.708410978
+total time for best found: 274.649637938
+c101.txt 2 10 100
+3000 1 0.1 100
+10 2.5 20 2
+
+
+
+
+c201
+
+Solution count 10: 1163.46 1163.01 1162.8 ... 1153.79
+
+Optimal solution found (tolerance 5.00e-02)
+Best objective 1.163458355266e+03, best bound 1.221590143770e+03, gap 4.9965%
+1 2 3 6 7 8 9 10 11 12 13 14 15 16 17 18 19 
+3441.66650891
+c201.txt
+100 [1, 2] 10
+10 2.5 20
+
+c201.txt   8   955.190463538   0.280934095383 [8, 9, 10, 11, 12, 13, 15, 16, 17]
+1 1 10 2.5 20  allowable_time =  100
