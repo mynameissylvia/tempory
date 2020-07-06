@@ -1,10 +1,15 @@
+
+"""
+Created on Mon Jul  6 20:35:53 2020
+
+@author: Angel
+"""
+
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
 Created on Mon Aug 12 10:52:18 2019
-
 Simple prior model
-
 @author: sylvia
 """
 import numpy as np
@@ -52,7 +57,7 @@ P=[]
 for i in scenario:
     S.append([1]+[1 if j in i[0] else 0 for j in locate]+[1])    
     P.append(i[1])
-#text_name=["c102.txt"]
+#text_name=["c103.txt"]
 for text_t in text_name:
     storing = []
     files=open(text_t)
@@ -74,9 +79,7 @@ for text_t in text_name:
     location = [data[:][0]]+data[:][1:n+1]+[depote_insert]
     location = location[:]
     del data
-    chosen_n=10
-    #40 48
-    
+    chosen_n=10    
     all_d = location[:]
     all_d.append(location[0][:])
     all_d[-1][0]=len(all_d)-1
@@ -92,9 +95,7 @@ for text_t in text_name:
             del time_ij
         timeing.append(t)
         del t
-    large_M=int(all_d[0][5]+max_time+all_d[1][6])+1
-    
-    
+    large_M=int(all_d[0][5]+max_time+all_d[1][6])+1    
     c1=10
     c2=2.5
     #c3=10000
@@ -139,7 +140,7 @@ for text_t in text_name:
             current_capacity = 0
             current_time = 0
             while continue_r:
-                insert_l=0
+                insert_l=depote
                 insert_score = 0
                 insert_punish=0
                 for i in all_place:
@@ -153,7 +154,7 @@ for text_t in text_name:
                             insert_start = start_time
                             insert_l = i
                             insert_punish=punish
-                if insert_l == 0:
+                if insert_l == depote:
                     score_-=c2*(time_r[route[-1]][insert_l])
                     service_start_c[depote][len(routing)-1] = current_time+time_r[route[-1]][depote]
                     route.append(depote)
@@ -222,13 +223,18 @@ for text_t in text_name:
                         service_start[i[k+1]][current_i]=new_arrive
                     else:
                         service_start[i[k+1]]=new_arrive+wait[i[k+1]]
-                        wait[i[k+1]]=max(0,tw[i[k+1]][0]-new_arrive)
+                        new_punish=max(0,service_start[i[k+1]]-tw[i[k+1]][1])
+                        score-=c3*(new_punish-punish_v_c[i[k+1]])
+                        punish_v_c[i[k+1]]=new_punish
                         k=k+1
                         while i[k+1]<depote and shift_n != service_start[i[k+1]]:
                             new_arrive=service_start[i[k]]+service[i[k]]+timeing[i[k]][i[k+1]]
                             wait[i[k+1]]=max(0,tw[i[k+1]][0]-new_arrive)
                             shift_n = service_start[i[k+1]]
                             service_start[i[k+1]]=new_arrive+wait[i[k+1]]
+                            new_punish=max(0,service_start[i[k+1]]-tw[i[k+1]][1])
+                            score-=c3*(new_punish-punish_v_c[i[k+1]])
+                            punish_v_c[i[k+1]]=new_punish
                             k=k+1
                         service_start[depote][current_i]=service_start[i[k]]+service[i[k]]+timeing[i[k]][i[k+1]]
                         r2 = k-len(i)
@@ -262,18 +268,19 @@ for text_t in text_name:
                 best_insert = 0
                 add_score = 0
                 for v in route_s:
-                    cap = sum([demand[i] for i in v])
+                    cap = sum([demand[i1] for i1 in v])
                     for i in notused:
                         for i2 in range(len(v)-1):
                             j = v[i2]
                             k = v[i2+1]
                             arrival=service_start[j]+service[j]+timeing[i][j]
                             wait_i = max(0,tw[i][0]-arrival)
+                            addition_time = timeing[i][j]+wait_i+service[i]+timeing[i][k]-timeing[j][k]
                             if k != depote:
                                 msf = maxshift[k]
                             else:
                                 msf = maxshift[k][current_rlocal]
-                            if arrival<=tw[i][1]+allow_time and cap+demand[i]<vehicle_capacity and arrival+wait_i+service[i]+timeing[i][k]<=tw[k][1]+allow_time:
+                            if arrival<=tw[i][1]+allow_time and cap+demand[i]<vehicle_capacity and arrival+wait_i+service[i]+timeing[i][k]<=tw[k][1]+allow_time and addition_time<=maxshift[depote][current_rlocal]:
                                 start = arrival+wait_i
                                 shift = timeing[i][j]+wait_i+service[i]+timeing[i][k]-timeing[j][k]
                                 punish=max(start-tw[j][1],0)
